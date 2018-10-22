@@ -1,7 +1,14 @@
 import Link from 'next/link'
 
 const header  = () => (
+    
     <div>
+        <nav class="navbar navbar-dark bg-dark">
+            <a class="navbar-brand" href="#">Never expand</a>
+            <Link class="navbar-brand" href="/code/manage">
+                    <a class="navbar-brand">코드관리</a>
+            </Link>
+        </nav>
         <ul>
             <li>
                 <Link href="/code/manage">

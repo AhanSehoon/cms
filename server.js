@@ -1,52 +1,48 @@
 const express = require('express');
+const bodyParser = require('body-parser');
+const session = require('express-session');
+const path = require('path');
+
+const dev = process.env.NODE_ENV !== 'production';
 const next = require('next');
+const pathMatch = require('path-match');
+const app = next({ dev });
+const handle = app.getRequestHandler();
+const { parse } = require('url');
 
-const dev = process.env.NODE_ENV === 'development';
-const PORT = process.env.PORT || 3000;
+const codeRoutes = require('./server/routes/codeRoutes.js');
 
-const ExpressApp = express();
-const NextApp = next({
-  dev, // 개발 모드인지 프로덕션인지에 대한 플래그 (true / false)
-  quiet: dev,
-  dir: 'next-app-dir', // Next 프로젝트 파일이 위치한 디렉토리, 기본 값은 현재 디렉토리 값임('.')
-  conf: { // next.config.js 에서 사용하는 객체 값
-    webpack: {}
-  }
-})
-const NextHandler = NextApp.getRequestHandler();
+app.prepare().then(() => {
+  const server = express();
 
-const CustomRouter = require('./routes');
-const NextRouter = express.Router();
+  server.use(bodyParser.json());
+  server.use(session({
+    secret: 'super-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 60000 }
+  }));
 
-NextRouter.get('/code/manage', (req, res) => {
-    const result = {
-        'SOME RESULT': 'CODE'
-    };
-    res.result = result;
+  //server.use('/', codeRoutes);
 
-    return NextApp.render(req, res, 'route-b', Object.assign({}, req.query, req.param))
-});
-NextRouter.get('/menu/manage', (req, res) => {
-  const result = {
-    'SOME RESULT': 'MENU'
-  };
-  res.result = result;
+  // Server-side
+  const route = pathMatch();
 
-  return NextApp.render(req, res, 'route-b', Object.assign({}, req.query, req.param))
-});
-NextRouter.get('*', (req, res) => NextHandler(req, res));
-
-NextApp
-  .prepare()
-  .then(() => {
-    ExpressApp.use(/* SOME MIDDLEWARE 1 */);
-    ExpressApp.use(/* SOME MIDDLEWARE 2 */);
-    ExpressApp.use('/', CustomRouter);
-
-    ExpressApp.use('/next-app', NextRouter);
-
-    ExpressApp.listen(PORT, err => {
-      if (err) throw err;
-      console.log(`Listening on ::${PORT}`);
-    })
+  server.get('/', (req, res) => {
+    return app.render(req, res, '/', req.query);
   });
+
+  //server.get('/detail', (req, res) => {
+  //  return app.render(req, res, '/detail', req.query);
+  //});
+
+  server.get('*', (req, res) => {
+    return handle(req, res);
+  });
+
+  /* eslint-disable no-console */
+  server.listen(3000, (err) => {
+    if (err) throw err;
+    console.log('Server ready on http://localhost:3000');
+  });
+});
